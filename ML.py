@@ -10,6 +10,7 @@ path = 'Train'
 encodings = []
 names = []
 
+
 many = [20190116, 20190463, 20190496, 20190490, 20190533, 20190018, 20190023, 20190278]
 def markAttendance(name):
     with open('Attendance.csv','r+') as f:
@@ -24,6 +25,35 @@ def markAttendance(name):
             date = now.strftime('%d-%B-%Y')
             f.writelines(f'{name}, Time: {time}, date: {date}')
             f.writelines("\n")
+
+def calc_hist(img):
+    histogram = [0] * 3
+    for j in range(3):
+        histr = cv2.calcHist([img], [j], None, [256], [0, 256])
+        histr *= 255.0 / histr.max()
+        histogram[j] = histr
+    return np.array(histogram)
+
+measures = np.zeros(1, dtype=np.float)
+def spoofing_Check(roi , count):
+    
+    img_ycrcb = cv2.cvtColor(roi, cv2.COLOR_BGR2YCR_CB)
+    img_luv = cv2.cvtColor(roi, cv2.COLOR_BGR2LUV)
+    ycrcb_hist = calc_hist(img_ycrcb)
+    luv_hist = calc_hist(img_luv)
+    feature_vector = np.append(ycrcb_hist.ravel(), luv_hist.ravel())
+    feature_vector = feature_vector.reshape(1, len(feature_vector))
+    prediction = clf.predict_proba(feature_vector)
+    prob = prediction[0][1]
+    measures[count % 1] = prob
+    if 0 not in measures:
+        if np.mean(measures) >= 0.7:
+            return False
+        else:
+            return True
+
+
+
 
 def findEcoding(img):
 
@@ -77,14 +107,24 @@ def detectFace(path , encodings , names):
 
 def camModel(encodings , names):
     cap  = cv2.VideoCapture(0)
+    count = 0
     while True:
         success, img = cap.read()
         imgS = cv2.resize(img, (0,0), None, 0.3,0.3)
         imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
         unknown_faces_location = face_recognition.face_locations(imgS)
         unknown_faces_encodeings = face_recognition.face_encodings(imgS, unknown_faces_location)
-
+        
         for encode_face, faceloc in zip(unknown_faces_encodeings,unknown_faces_location):
+            roi = imgS[faceloc]
+            if spoofing_Check(roi,count) == True:
+                y1,x2,y2,x1 = faceloc
+                y1, x2,y2,x1 = y1*4,x2*4,y2*4,x1*4
+                cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
+                cv2.rectangle(img, (x1,y2-35),(x2,y2), (0,255,0), cv2.FILLED)
+                cv2.putText(img,"Spoofing Face", (x1+6,y2-5), cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
+                continue
+
             matches = face_recognition.compare_faces(encodings, encode_face , tolerance=0.5)
             faceDist = face_recognition.face_distance(encodings, encode_face)
             matchIndex = np.argmin(faceDist)
@@ -99,12 +139,14 @@ def camModel(encodings , names):
                 cv2.rectangle(img, (x1,y2-35),(x2,y2), (0,255,0), cv2.FILLED)
                 cv2.putText(img,name, (x1+6,y2-5), cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
                 markAttendance(name)
+        count+=1
         cv2.imshow('webcam', img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
 if __name__ == "__main__":
+    clf = None
     j = 0 
     known_cnt = 0
     unknown_cnt = 0
@@ -115,20 +157,5 @@ if __name__ == "__main__":
         findEcoding(f'{path}/{img}') 
 
     print("The testing has been started... ")
-    j = 1
-    print(datetime.now().strftime('%I:%M:%S:%p')) 
-    for student in detectFace("Test\Many.jpg",encodings,names):
-        if student == "UNKOWN PERSON!":
-            unknown_cnt+=1
-        else:
-            known_cnt+=1
-        print("Student ", j , " name: ", student)
-        j+=1
     
-    print(" ")
-
-    print("Total student that have been attended = ",unknown_cnt+known_cnt,
-    "... ",known_cnt, "Known person have been attended and" , unknown_cnt, "UnKnown person have been attended")    
-    print("Finish...")
-
-    #camModel(encodings , names)
+    camModel(encodings , names)
