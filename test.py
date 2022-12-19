@@ -9,7 +9,9 @@ Train_path = 'Train'
 Test_path = 'Test'
 encodings = []
 names = []
-
+kernel = np.array([[0, -1, 0],
+                   [-1, 5,-1],
+                   [0, -1, 0]])
 def markAttendance(name):
     with open('Attendance.csv','r+') as f:
         myDataList = f.readlines()
@@ -24,12 +26,19 @@ def markAttendance(name):
             f.writelines(f'{name}, Time: {time}, date: {date}')
             f.writelines("\n")
 
-def findEcoding(img):
+def calc_hist(img):
+    histogram = [0] * 3
+    for j in range(3):
+        histr = cv2.calcHist([img], [j], None, [256], [0, 256])
+        histr *= 255.0 / histr.max()
+        histogram[j] = histr
+    return np.array(histogram)
 
+def findEcoding(img):
     image = face_recognition.load_image_file(img)
+    #Pre_Proccessing
     image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, (0,0), None, 0.3,0.3)
-#    face_locations = face_recognition.face_locations(image)
+    image = cv2.filter2D(src=image, ddepth=-1, kernel=kernel)
     
     face_detection = face_recognition.face_encodings(image, model="small")
     for faceing in face_detection:
@@ -40,15 +49,15 @@ def detectFace(path , encodings , names):
     name = []
     unknown_picture = face_recognition.load_image_file(path)
     unknown_picture = cv2.cvtColor(unknown_picture, cv2.COLOR_BGR2RGB)
-    #unknown_picture = cv2.resize(unknown_picture, (0,0), None, 0.5,0.5)
-    #face_locations = face_recognition.face_locations(unknown_picture)            
+    unknown_picture = cv2.filter2D(src=unknown_picture, ddepth=-1, kernel=kernel)
+
 
     unknown_face_encoding = face_recognition.face_encodings(unknown_picture, model="small")
     unknown_faces = []
 
     for faces in unknown_face_encoding:
         unknown_faces.append(np.array(faces).ravel())
-
+    total = 0
     for unknown_face in unknown_faces: 
         results = face_recognition.compare_faces(encodings, unknown_face, tolerance=0.5)
         best_face_destination = face_recognition.face_distance(encodings, unknown_face)
@@ -58,16 +67,25 @@ def detectFace(path , encodings , names):
             markAttendance(names[index_of_best_face_destination])
         else:
             name.append("UNKOWN PERSON!")
+        total+=1
+        if total == 4:
+            break
     return name   
-def getAccuracy(img,encodings,names):
+
+def getAccuracy(img , i):
     wrong_Samples = 0
-    names = detectFace(img,encodings,names)
-    test_name = os.path.basename(img).split('.')[0]
     total = 0
-    for name in names:
+    test_name = os.path.basename(img).split('.')[0]
+    
+    namesA = detectFace(img,encodings,names)
+    print("result of ", i,"th test" ,namesA)
+
+    for name in namesA:
         if name != test_name:
             wrong_Samples+=1
         total+=1
+        if total == 4:
+            break
     return total,wrong_Samples    
 
     print("a")
@@ -113,12 +131,12 @@ if __name__ == "__main__":
     print(datetime.now().strftime('%I:%M:%S:%p')) 
     total = 0
     wrong_samples = 0
+    i = 1
     for img in os.listdir(Test_path):
-        j+=1
-        print("Encoding.... Person num: ",j)
-        t,w = getAccuracy(f'{Test_path}/{img}') 
+        t,w = getAccuracy(f'{Test_path}/{img}',i) 
         total+=t
         wrong_samples+=w
-    accuracy = (wrong_samples/total)*100
+        i+=1
+    accuracy = (1-(wrong_samples/total))*100
     print("Accuracy = ", accuracy)
     #camModel(encodings , names)

@@ -10,8 +10,6 @@ path = 'Train'
 encodings = []
 names = []
 
-
-many = [20190116, 20190463, 20190496, 20190490, 20190533, 20190018, 20190023, 20190278]
 def markAttendance(name):
     with open('Attendance.csv','r+') as f:
         myDataList = f.readlines()
@@ -33,27 +31,6 @@ def calc_hist(img):
         histr *= 255.0 / histr.max()
         histogram[j] = histr
     return np.array(histogram)
-
-measures = np.zeros(1, dtype=np.float)
-def spoofing_Check(roi , count):
-    
-    img_ycrcb = cv2.cvtColor(roi, cv2.COLOR_BGR2YCR_CB)
-    img_luv = cv2.cvtColor(roi, cv2.COLOR_BGR2LUV)
-    ycrcb_hist = calc_hist(img_ycrcb)
-    luv_hist = calc_hist(img_luv)
-    feature_vector = np.append(ycrcb_hist.ravel(), luv_hist.ravel())
-    feature_vector = feature_vector.reshape(1, len(feature_vector))
-    prediction = clf.predict_proba(feature_vector)
-    prob = prediction[0][1]
-    measures[count % 1] = prob
-    if 0 not in measures:
-        if np.mean(measures) >= 0.7:
-            return False
-        else:
-            return True
-
-
-
 
 def findEcoding(img):
 
@@ -103,28 +80,73 @@ def detectFace(path , encodings , names):
                         name.append("UNKOWN PERSON!")
 
     return name         
+count = 0
 
+sample_number = 1  
+modelFile = "models/res10_300x300_ssd_iter_140000.caffemodel"
+configFile = "models/deploy.prototxt"
+measures = np.zeros(sample_number, dtype=np.float64)
+net = cv2.dnn.readNetFromCaffe(configFile, modelFile)
+def antiSpoof(img):
+    blob = cv2.dnn.blobFromImage(cv2.resize(img, (300, 300)), 1.0,(300, 300), (104.0, 177.0, 123.0))
+    net.setInput(blob)
+    faces3 = net.forward()
+    measures[count%sample_number]=0
+    height, width = img.shape[:2]
+    text = "True"
+    for i in range(faces3.shape[2]):
+        confidence = faces3[0, 0, i, 2]
+        if confidence > 0.5:
+            box = faces3[0, 0, i, 3:7] * np.array([width, height, width, height])
+            (x, y, x1, y1) = box.astype("int")
+            # cv2.rectangle(img, (x, y), (x1, y1), (0, 0, 255), 5)
+            roi = img[y:y1, x:x1]
+
+            point = (0,0)
+            
+            img_ycrcb = cv2.cvtColor(roi, cv2.COLOR_BGR2YCR_CB)
+            img_luv = cv2.cvtColor(roi, cv2.COLOR_BGR2LUV)
+    
+            ycrcb_hist = calc_hist(img_ycrcb)
+            luv_hist = calc_hist(img_luv)
+
+            ycrcb_hist = calc_hist(img_ycrcb)
+            luv_hist = calc_hist(img_luv)
+    
+            feature_vector = np.append(ycrcb_hist.ravel(), luv_hist.ravel())
+            feature_vector = feature_vector.reshape(1, len(feature_vector))
+    
+            prediction = clf.predict_proba(feature_vector)
+            prob = prediction[0][1]
+    
+            measures[count % sample_number] = prob
+    
+            cv2.rectangle(img, (x, y), (x1, y1), (255, 0, 0), 2)
+    
+            point = (x, y-5)
+    
+            print (measures, np.mean(measures))
+            if 0 not in measures:
+                if np.mean(measures) >= 0.7:
+                    text = "False"
+                else:
+                    text = "True"
+
+    return text
+            
 
 def camModel(encodings , names):
+    
     cap  = cv2.VideoCapture(0)
-    count = 0
     while True:
-        success, img = cap.read()
+        ret, img = cap.read()
         imgS = cv2.resize(img, (0,0), None, 0.3,0.3)
         imgS = cv2.cvtColor(imgS, cv2.COLOR_BGR2RGB)
         unknown_faces_location = face_recognition.face_locations(imgS)
         unknown_faces_encodeings = face_recognition.face_encodings(imgS, unknown_faces_location)
+ 
         
         for encode_face, faceloc in zip(unknown_faces_encodeings,unknown_faces_location):
-            roi = imgS[faceloc]
-            if spoofing_Check(roi,count) == True:
-                y1,x2,y2,x1 = faceloc
-                y1, x2,y2,x1 = y1*4,x2*4,y2*4,x1*4
-                cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
-                cv2.rectangle(img, (x1,y2-35),(x2,y2), (0,255,0), cv2.FILLED)
-                cv2.putText(img,"Spoofing Face", (x1+6,y2-5), cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
-                continue
-
             matches = face_recognition.compare_faces(encodings, encode_face , tolerance=0.5)
             faceDist = face_recognition.face_distance(encodings, encode_face)
             matchIndex = np.argmin(faceDist)
@@ -132,16 +154,17 @@ def camModel(encodings , names):
             if matches[matchIndex]:
                 name = names[matchIndex]
                 print(name)
-                y1,x2,y2,x1 = faceloc
-                # since we scaled down by 4 times
+                
                 y1, x2,y2,x1 = y1*4,x2*4,y2*4,x1*4
                 cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
                 cv2.rectangle(img, (x1,y2-35),(x2,y2), (0,255,0), cv2.FILLED)
                 cv2.putText(img,name, (x1+6,y2-5), cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
                 markAttendance(name)
-        count+=1
-        cv2.imshow('webcam', img)
 
+                # since we scaled down by 4 times
+               
+
+        cv2.imshow('webcam', img)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
