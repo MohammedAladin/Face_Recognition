@@ -59,8 +59,17 @@ def detectFace(path , encodings , names):
         else:
             name.append("UNKOWN PERSON!")
     return name   
-def getAccuracy(img):
-    
+def getAccuracy(img,encodings,names):
+    wrong_Samples = 0
+    names = detectFace(img,encodings,names)
+    test_name = os.path.basename(img).split('.')[0]
+    total = 0
+    for name in names:
+        if name != test_name:
+            wrong_Samples+=1
+        total+=1
+    return total,wrong_Samples    
+
     print("a")
 def camModel(encodings , names):
     cap  = cv2.VideoCapture(0)
@@ -102,8 +111,14 @@ if __name__ == "__main__":
     print("The testing has been started... ")
     print("GET ACCURACY...")
     print(datetime.now().strftime('%I:%M:%S:%p')) 
+    total = 0
+    wrong_samples = 0
     for img in os.listdir(Test_path):
         j+=1
         print("Encoding.... Person num: ",j)
-        getAccuracy(f'{Test_path}/{img}') 
+        t,w = getAccuracy(f'{Test_path}/{img}') 
+        total+=t
+        wrong_samples+=w
+    accuracy = (wrong_samples/total)*100
+    print("Accuracy = ", accuracy)
     #camModel(encodings , names)
