@@ -5,7 +5,8 @@ import numpy as np
 import face_recognition
 from datetime import datetime
 
-path = 'Train'
+Train_path = 'Train'
+Test_path = 'Test'
 encodings = []
 names = []
 
@@ -35,7 +36,6 @@ def findEcoding(img):
          faceing = np.array(faceing).ravel()
          encodings.append(faceing)
          names.append(os.path.basename(img).split('.')[0])
-
 def detectFace(path , encodings , names):
     name = []
     unknown_picture = face_recognition.load_image_file(path)
@@ -59,7 +59,9 @@ def detectFace(path , encodings , names):
         else:
             name.append("UNKOWN PERSON!")
     return name   
-
+def getAccuracy(img):
+    
+    print("a")
 def camModel(encodings , names):
     cap  = cv2.VideoCapture(0)
     while True:
@@ -92,17 +94,16 @@ def camModel(encodings , names):
 if __name__ == "__main__":
     j = 0 
     print(datetime.now().strftime('%I:%M:%S:%p')) 
-    for img in os.listdir(path):
+    for img in os.listdir(Train_path):
         j+=1
         print("Encoding.... Person num: ",j)
-        findEcoding(f'{path}/{img}') 
+        findEcoding(f'{Train_path}/{img}') 
 
     print("The testing has been started... ")
-    j = 1
+    print("GET ACCURACY...")
     print(datetime.now().strftime('%I:%M:%S:%p')) 
-    for student in detectFace("Test\Maamoun.jpg",encodings,names):
-        print("Student ", j , " name: ", student)
+    for img in os.listdir(Test_path):
         j+=1
-    print("Finish...")
-
+        print("Encoding.... Person num: ",j)
+        getAccuracy(f'{Test_path}/{img}') 
     #camModel(encodings , names)
