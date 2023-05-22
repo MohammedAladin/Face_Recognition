@@ -28,7 +28,7 @@ Follow these steps to set up the Face Recognition project:
 2. **Install the required dependencies. You can use pip to install them:**
   pip install opencv-python numpy dlib
   
-3. **Download the face recognition models:
+3. **Download the face recognition models:**
 
   - **Download the shape predictor model from: http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2**
   - **Extract the downloaded file and place it in the project directory.**
@@ -41,12 +41,12 @@ Follow these steps to set up the Face Recognition project:
 
 To use the Face Recognition project, follow these steps:
 
-1- **Ensure that you have the necessary dependencies installed and the models downloaded.
-1- **Prepare your input images or video frames. The project supports both image files and real-time video streams.
-1- **Run the face_recognition.py script. This script performs face detection, recognition, and displays the results.
-1- **For images: Pass the path to the image file as a command-line argument.
-1- **For video: Set the video_mode flag to True in the script, and the script will capture frames from your default camera.
-1- **View the results. The script will detect faces, recognize individuals, and display the results on the screen. You can also customize the output to suit your needs.
+1- **Ensure that you have the necessary dependencies installed and the models downloaded.**
+2- **Prepare your input images or video frames. The project supports both image files and real-time video streams.**
+3- **Run the face_recognition.py script. This script performs face detection, recognition, and displays the results.**
+4- **For images: Pass the path to the image file as a command-line argument.**
+5- **For video: Set the video_mode flag to True in the script, and the script will capture frames from your default camera.**
+6- **View the results. The script will detect faces, recognize individuals, and display the results on the screen. You can also customize the output to suit your needs.**
 
 ## Contributing
   Contributions to the Face Recognition project are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request. We appreciate your feedback and collaboration.
