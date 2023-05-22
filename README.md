@@ -42,10 +42,15 @@ Follow these steps to set up the Face Recognition project:
 To use the Face Recognition project, follow these steps:
 
 1- **Ensure that you have the necessary dependencies installed and the models downloaded.**
+
 2- **Prepare your input images or video frames. The project supports both image files and real-time video streams.**
+
 3- **Run the face_recognition.py script. This script performs face detection, recognition, and displays the results.**
+
 4- **For images: Pass the path to the image file as a command-line argument.**
+
 5- **For video: Set the video_mode flag to True in the script, and the script will capture frames from your default camera.**
+
 6- **View the results. The script will detect faces, recognize individuals, and display the results on the screen. You can also customize the output to suit your needs.**
 
 ## Contributing
