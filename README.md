@@ -62,6 +62,6 @@ The Face Recognition project is licensed under the FCAI-CU License.
 ## Acknowledgements
   The project builds upon the work of various open-source libraries and resources. We would like to thank the authors and contributors of these projects for their valuable contributions.
 
-- **dlib
-- **OpenCV
-- **NumPy
+- **dlib**
+- **OpenCV**
+- **NumPy**
